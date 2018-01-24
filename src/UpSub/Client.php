@@ -93,7 +93,7 @@ class Client
     }
 
     /**
-     * Send event on a specific channel to the UpSub API
+     * Send message to the upsub dispatcher
      * @param  Message      $message
      * @return Curl
      */
@@ -112,9 +112,9 @@ class Client
     }
 
     /**
-     * Send event on a specific channel to the UpSub API
+     * Send message on a specific channel
      * @param  string        $channel
-     * @param  Mixed         $payload
+     * @param  mixed         $payload
      * @return Curl
      */
     public function send($channel, $payload)
@@ -123,7 +123,7 @@ class Client
     }
 
     /**
-     * Subscribe to channels
+     * Create a new Channel object
      * @param  string    $channels
      * @return Channel
      */

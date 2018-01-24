@@ -7,7 +7,7 @@ class Channel
      * UpSub Client instance
      * @var Client
      */
-    protected $client;
+    private $client;
 
     /**
      * Subscribed channels
@@ -17,31 +17,39 @@ class Channel
 
     /**
      * Serup the channel instance
-     * @method __construct
      * @param  Client     $client
      * @param  array      $channels
      */
-    public function __construct($client, $channels)
+    public function __construct($channels, $client)
     {
-        $this->client = $client;
         $this->channels = $channels;
+        $this->client = $client;
     }
 
     /**
-     * Send event on channels
-     * @method send
-     * @param  String $event
-     * @param  array  $data
-     * @return Curl   returns an array of the curl responses
+     * Send a message on the specified channels
+     * @param  string $channel
+     * @param  mixed  $payload
+     * @return Curl
      */
-    public function send($event, $data)
+    public function send($channel, $payload)
     {
-        $responses = [];
-
-        foreach ($this->channels as $channel) {
-            $responses[] = $this->client->sendOnChannel($channel, $event, $data);
+        if (count($this->channels) == 1) {
+            return $this->client->send(
+                $this->channels[0].'/'.$channel,
+                $payload
+            );
         }
 
-        return $responses;
+        $messages = [];
+
+        foreach ($this->channels as $prefix) {
+            $messages[] = Message::text(
+                $prefix.'/'.$channel,
+                $payload
+            );
+        }
+
+        return $this->client->sendMessage(Message::batch($messages));
     }
 }

@@ -1,6 +1,8 @@
 <?php
 
 use UpSub\Client;
+use UpSub\Message;
+use UpSub\Channel;
 use PHPUnit\Framework\TestCase;
 
 require_once 'CurlMock.php';
@@ -15,12 +17,13 @@ class ClientTest extends TestCase
 
     /**
      * Setup the UpSub Client before each test
-     * @method __construct
      */
     public function __construct()
     {
-        $this->client = new Client('APP_KEY', 'SECRET_KEY', [
-            'name' => 'client-name',
+        $this->client = new Client('http://localhost:4400', [
+            'appID' => 'app-id',
+            'secret' => 'secret',
+            'name' => 'name',
             'dependencies' => [
                 'curl' => CurlMock::class
             ]
@@ -29,8 +32,6 @@ class ClientTest extends TestCase
 
     /**
      * Should test that the new Client is an instance of UpSub/Client
-     * @method testShouldNewClient
-     * @return void
      */
     public function testShouldBeInstanceOfUpSubClient()
     {
@@ -39,144 +40,84 @@ class ClientTest extends TestCase
 
     /**
      * Should set APP_KEY and SECRET_KEY as HTTP Headers
-     * @method testShouldSetHTTPHeaders
-     * @return void
      */
     public function testShouldSetHTTPHeaders()
     {
-        $curl = $this->client->send('event', [
+        $response = $this->client->send('some-channel', [
             'some' => 'data'
         ]);
 
-        $this->assertContains('APP_KEY', $curl->headers);
-        $this->assertContains('SECRET_KEY', $curl->headers);
+        $this->assertArrayHasKey('upsub-app-id', $response->headers);
+        $this->assertArrayHasKey('upsub-secret', $response->headers);
+        $this->assertArrayHasKey('upsub-connection-name', $response->headers);
+        $this->assertEquals('app-id', $response->headers['upsub-app-id']);
+        $this->assertEquals('secret', $response->headers['upsub-secret']);
+        $this->assertEquals('name', $response->headers['upsub-connection-name']);
     }
 
     /**
-     * Should send event in the global event scope
-     * @method testShouldSendEventInGlobalScope
-     * @return void
+     * Should send a message
      */
-    public function testShouldSendEventInGlobalScope()
+    public function testShouldSendRawMessage()
     {
-        $curl = $this->client->send('event', [
-            'some' => 'data'
+        $msg = new Message(
+            ['header-key' => 'header-value'],
+            ['payload-key' => 'payload-value']
+        );
+
+        $response = $this->client->sendMessage($msg);
+
+        $this->assertEquals($msg->encode(), $response->response);
+    }
+
+    /**
+     * Should send a text message on a channel
+     */
+    public function testShouldSendTextMessage()
+    {
+        $response = $this->client->send('some-channel', 'payload');
+
+        $this->assertEquals(
+            Message::text('some-channel', 'payload')->encode(),
+            $response->response
+        );
+    }
+
+    /**
+     * Should throw exeption if the UpSub server doesn't response with 200 ok.
+     */
+    public function testShouldThroughIfUpSubIsGone()
+    {
+        $client = new Client('http://not-upsub.com', [
+            'dependencies' => [
+                'curl' => CurlMock::class
+            ]
         ]);
-
-        $this->assertEquals([
-            'type' => 'message',
-            'client' => 'client-name',
-            'channel' => '',
-            'event' => 'event',
-            'message' => '{"some":"data"}'
-        ], $curl->response);
-    }
-
-    /**
-     * Should send event on a specific channel
-     * @method testShouldSendEventOnSpecificChannel
-     * @return void
-     */
-    public function testShouldSendEventOnSpecificChannel()
-    {
-        $curl = $this->client->sendOnChannel('channel', 'event', [
-            'some' => 'data'
-        ]);
-
-        $this->assertEquals([
-            'type' => 'message',
-            'client' => 'client-name',
-            'channel' => 'channel',
-            'event' => 'event',
-            'message' => '{"some":"data"}'
-        ], $curl->response);
-    }
-
-    /**
-     * Should throw an exception while sending event, if the UpSub API isn't
-     * responding with 200 OK
-     * @method testShouldThrowExceptionWhileSendingEvent
-     * @return void
-     */
-    public function testShouldThrowExceptionWhileSendingEvent()
-    {
-        $this->client->options->host = 'http://should.fail';
 
         try {
-            $curl = $this->client->send('event', [
-                'some' => 'data'
-            ]);
+            $response = $client->send('some-channel', 'payload');
         } catch (Exception $error) {
             $this->assertInstanceOf(Exception::class, $error);
         }
     }
 
     /**
-     * Should subscribe to channels and return the channel object
-     * @method testShouldSubscribeToChannels
-     * @return void
+     * Should create and return a new Channel object
      */
-    public function testShouldSubscribeToChannels()
+    public function testShouldCreateAndReturnChannel()
     {
-        $channel = $this->client->subscribe('channel');
+        $channel = $this->client->channel('channel');
 
-        $this->assertInstanceOf('UpSub\Channel', $channel);
+        $this->assertInstanceOf(Channel::class, $channel);
         $this->assertEquals(['channel'], $channel->channels);
     }
 
     /**
-     * Should send event on a specific channel via the channel object
-     * @method testShouldSendEventOnChannels
-     * @return void
+     * Should create and return a new Channel object containing multiple channels
      */
-    public function testShouldSendEventOnSingleChannel()
+    public function testShouldCreateMultipleChannels()
     {
-        $channel = $this->client->subscribe('my-channel');
-
-        $curls = $channel->send('event', ['some' => 'data']);
-
-        $this->assertEquals([
-            'type' => 'message',
-            'client' => 'client-name',
-            'channel' => 'my-channel',
-            'event' => 'event',
-            'message' => '{"some":"data"}'
-        ], $curls[0]->response);
-    }
-
-    /**
-     * Should send event on multiple channels at once
-     * @method testShouldSendEventOnMultipleChannels
-     * @return void
-     */
-    public function testShouldSendEventOnMultipleChannels()
-    {
-        $channel = $this->client->subscribe('channel-1', 'channel-2');
-
-        $curls = $channel->send('event', ['some' => 'data']);
-
-        foreach ($curls as $key => $curl) {
-            $this->assertEquals([
-                'type' => 'message',
-                'client' => 'client-name',
-                'channel' => 'channel-'.($key+1),
-                'event' => 'event',
-                'message' => '{"some":"data"}'
-            ], $curl->response);
-        }
-
-        $channel = $this->client->subscribe(['channel-1', 'channel-2']);
-
-        $curls = $channel->send('event', ['some' => 'data']);
-
-        foreach ($curls as $key => $curl) {
-            $this->assertEquals([
-                'type' => 'message',
-                'client' => 'client-name',
-                'channel' => 'channel-'.($key+1),
-                'event' => 'event',
-                'message' => '{"some":"data"}'
-            ], $curl->response);
-        }
+        $multiChannel = $this->client->channel('channel-1', 'channel-2');
+        $this->assertEquals(['channel-1', 'channel-2'], $multiChannel->channels);
     }
 }

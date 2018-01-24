@@ -16,7 +16,7 @@ class CurlMock
 
     public function post($url, $data)
     {
-        if ($url == 'https://upsub.uptime.dk/api/1.0/send-event') {
+        if ($url == 'http://localhost:4400/v1/send') {
             $this->error = false;
             $this->response = $data;
             return $this;

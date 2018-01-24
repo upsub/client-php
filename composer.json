@@ -1,9 +1,13 @@
 {
   "name": "upsub/client",
   "type": "library",
-  "description": "",
+  "description": "php client for UpSub. A High performance Pub/Sub messaging server for the Web & Cloud.",
   "keywords": [
-    "Realtime"
+    "real-time",
+    "upsub",
+    "client",
+    "message-bus",
+    "websocket"
   ],
   "homepage": "http://uptime.dk",
   "support": {

@@ -3,41 +3,34 @@ namespace UpSub;
 
 use \Curl\Curl;
 use UpSub\Channel;
+use UpSub\Message;
 
 class Client
 {
     /**
-     * App key from the UpSub Server
+     * Host
      * @var string
      */
-    protected $appKey;
-
-    /**
-     * Secret key from the UpSub Server
-     * @var string
-     */
-    protected $secretKey;
+    private $host;
 
     /**
      * Options
      * @var stdClass
      */
-    public $options;
+    private $options;
 
     /**
-     * Setup the Client
-     * @method __constructor
-     * @param  string      $appKey
-     * @param  string      $secretKey
+     * Create a new instance of the client
+     * @param  string      $host
+     * @param  string      $options
      * @return Client
      */
-    public function __construct($appKey, $secretKey, $options = [])
+    public function __construct($host, $options = [])
     {
-        $this->appKey = $appKey;
-        $this->secretKey = $secretKey;
+        $this->host = $host;
         $this->options = new \stdClass;
 
-        $this->setupOptions($options);
+        $this->setDefaultOptions($options);
     }
 
     /**
@@ -46,96 +39,100 @@ class Client
      * @param  array       $options
      * @return void
      */
-    protected function setupOptions($options)
+    private function setDefaultOptions($options)
     {
         $options = (object)$options;
 
         $this->options->name = isset($options->name)
             ? $options->name
-            : '';
+            : null;
 
-        $this->options->host = isset($options->host)
-            ? $options->host
-            : 'https://upsub.uptime.dk';
+        $this->options->appID = isset($options->appID)
+            ? $options->appID
+            : null;
+
+        $this->options->secret = isset($options->secret)
+            ? $options->secret
+            : null;
 
         $this->options->timeout = isset($options->timeout)
-            ? $options->timeout / 1000
+            ? $options->timeout
             : 5;
 
         $this->options->dependencies = (object)[];
-        $this->options->dependencies->curl = isset($options->dependencies['curl'])
+        $this->options->dependencies->Curl = isset($options->dependencies['curl'])
             ? $options->dependencies['curl']
             : Curl::class;
     }
 
     /**
      * create new curl request
-     * @method setupCurl
      * @return Curl
      */
-    protected function createRequest()
+    private function createRequest()
     {
-        $request = new $this->options->dependencies->curl;
+        $headers = [];
+
+        if (!is_null($this->options->appID)) {
+            $headers['upsub-app-id'] = $this->options->appID;
+        }
+
+        if (!is_null($this->options->secret)) {
+            $headers['upsub-secret'] = $this->options->secret;
+        }
+
+        if (!is_null($this->options->name)) {
+            $headers['upsub-connection-name'] = $this->options->name;
+        }
+
+        $request = new $this->options->dependencies->Curl;
         $request->setTimeout = $this->options->timeout;
-        $request->setHeaders([
-            'APP-KEY' => $this->appKey,
-            'SECRET-KEY' => $this->secretKey
-        ]);
+        $request->setHeaders($headers);
 
         return $request;
     }
 
     /**
      * Send event on a specific channel to the UpSub API
-     * @method sendOnChannel
-     * @param  string        $channel
-     * @param  string        $event
-     * @param  array         $data
-     * @param  string        $type
+     * @param  Message      $message
      * @return Curl
      */
-    public function sendOnChannel($channel, $event, $data, $type = 'message')
+    public function sendMessage($message)
     {
         $request = $this->createRequest();
-        $request->post($this->options->host.'/api/1.0/send-event', [
-            'type' => $type,
-            'client' => $this->options->name,
-            'channel' => $channel,
-            'event' => $event,
-            'message' => json_encode($data)
-        ]);
+        $request->post($this->host.'/v1/send', $message->encode());
 
         if ($request->error) {
-            throw new \Exception('UpSub response error '.$request->errorCode.': '.$request->errorMessage);
+            throw new \Exception(
+                "UpSub response error $request->errorCode: $request->errorMessage"
+            );
         }
 
         return $request;
     }
 
     /**
-     * Send event to the UpSub API
-     * @method send
-     * @param string        $event
-     * @param array         $data
+     * Send event on a specific channel to the UpSub API
+     * @param  string        $channel
+     * @param  Mixed         $payload
      * @return Curl
      */
-    public function send($event, $data)
+    public function send($channel, $payload)
     {
-        return $this->sendOnChannel('', $event, $data);
+        return $this->sendMessage(Message::text($channel, $payload));
     }
 
     /**
      * Subscribe to channels
-     * @method subscribe
      * @param  string    $channels
      * @return Channel
      */
-    public function subscribe($channels)
+    public function channel($channels)
     {
         if (!is_array($channels)) {
             $channels = func_get_args();
         }
 
-        return new Channel($this, $channels);
+        return new Channel($channels, $this);
     }
 }

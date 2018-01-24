@@ -1,5 +1,6 @@
 # php client
 
+[![Latest Stable Version](https://poser.pugx.org/upsub/client/version)](https://packagist.org/packages/upsub/client)
 [![Build Status](https://travis-ci.org/upsub/client-php.svg?branch=master)](https://travis-ci.org/upsub/client-php)
 
 This is the php client for UpSub, its communicating to the [Dispatcher](https://github.com/upsub/dispatcher) via the http

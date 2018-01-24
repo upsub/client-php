@@ -20,13 +20,13 @@ class Message
      * Message type text
      * @var string
      */
-    public const TEXT = 'text';
+    const TEXT = 'text';
 
     /**
      * Message type batch
      * @var [type]
      */
-    public const BATCH = 'batch';
+    const BATCH = 'batch';
 
     /**
      * Create a new Message instance

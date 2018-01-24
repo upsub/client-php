@@ -1,5 +1,7 @@
 # php client
 
+[![Build Status](https://travis-ci.org/upsub/client-php.svg?branch=master)](https://travis-ci.org/upsub/client-php)
+
 This is the php client for UpSub, its communicating to the [Dispatcher](https://github.com/upsub/dispatcher) via the http
 protocol. This client is write only and can therefore not listen for message from the Dispatcher.
 > Only clients with subscription support can listen for message, see the [JavaScript client](https://github.com/upsub/client-js).

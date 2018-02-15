@@ -34,7 +34,7 @@ The best way to structure eventstreams is by scoping it in different channels.
 ```php
 <?php
 // Single channel
-$channel = $client->channel('channe');
+$channel = $client->channel('channel');
 
 // Multiple channels
 $multiChannel = $client->channel('channel-1', 'channel-2');

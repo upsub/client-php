@@ -31,14 +31,6 @@ class ClientTest extends TestCase
     }
 
     /**
-     * Should test that the new Client is an instance of UpSub/Client
-     */
-    public function testShouldBeInstanceOfUpSubClient()
-    {
-        $this->assertInstanceOf(Client::class, $this->client);
-    }
-
-    /**
      * Should set APP_KEY and SECRET_KEY as HTTP Headers
      */
     public function testShouldSetHTTPHeaders()

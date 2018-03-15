@@ -96,6 +96,24 @@ class ClientTest extends TestCase
     }
 
     /**
+     * Should throw exception if a channel contains spaces.
+     */
+    public function testShouldThroughIfChannelIncludesSpaces()
+    {
+        $client = new Client('http://not-upsub.com', [
+            'dependencies' => [
+                'curl' => CurlMock::class
+            ]
+        ]);
+
+        try {
+            $response = $client->send('some channel', 'payload');
+        } catch (\UnexpectedValueException $error) {
+            $this->assertInstanceOf(\UnexpectedValueException::class, $error);
+        }
+    }
+
+    /**
      * Should create and return a new Channel object
      */
     public function testShouldCreateAndReturnChannel()

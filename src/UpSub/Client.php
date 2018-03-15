@@ -119,6 +119,10 @@ class Client
      */
     public function send($channel, $payload)
     {
+        if (strpos($channel, ' ') !== false) {
+            throw new \UnexpectedValueException("Channel can't contain spaces");
+        }
+
         return $this->sendMessage(Message::text($channel, $payload));
     }
 

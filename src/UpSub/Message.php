@@ -92,7 +92,7 @@ class Message
      */
     public static function batch($messages)
     {
-        return new Message(static::BATCH, "", $headers, $messages);
+        return new Message(static::BATCH, "", [], $messages);
     }
 
     /**

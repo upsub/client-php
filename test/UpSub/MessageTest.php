@@ -52,7 +52,7 @@ class MessageTest extends TestCase
     public function testShouldCreateJSONsMessage()
     {
         $msg = Message::json('some-channel', [ 'key' => 'value' ]);
-        $expectedPayload = ['key' => value];
+        $expectedPayload = ['key' => 'value'];
 
         $this->assertEquals('json', $msg->type);
         $this->assertEquals('some-channel', $msg->channel);

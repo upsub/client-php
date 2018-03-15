@@ -5,6 +5,18 @@ namespace UpSub;
 class Message
 {
     /**
+     * Type of the message
+     * @var string
+     */
+    public $type;
+
+    /**
+     * Channel the message should be send on
+     * @var string
+     */
+    public $channel;
+
+    /**
      * Message headers
      * @var array
      */
@@ -23,6 +35,12 @@ class Message
     const TEXT = 'text';
 
     /**
+     * Message type json
+     * @var string
+     */
+    const JSON = 'json';
+
+    /**
      * Message type batch
      * @var [type]
      */
@@ -33,8 +51,10 @@ class Message
      * @param array $headers
      * @param mixed $payload
      */
-    public function __construct($headers, $payload)
+    public function __construct($type, $channel, $headers, $payload)
     {
+        $this->type = $type;
+        $this->channel = $channel;
         $this->headers = (object)$headers;
         $this->payload = $payload;
     }
@@ -47,12 +67,22 @@ class Message
      */
     public static function text($channel, $payload)
     {
-        $headers = [
-            'upsub-message-type' => static::TEXT,
-            'upsub-channel' => $channel
-        ];
+        if (!is_string($payload)) {
+            return static::json($channel, $payload);
+        }
 
-        return new Message($headers, $payload);
+        return new Message(static::TEXT, $channel, [], $payload);
+    }
+
+    /**
+     * Create a new json message
+     * @param  string $channel
+     * @param  mixed $payload
+     * @return Message
+     */
+    public static function json($channel, $payload)
+    {
+        return new Message(static::JSON, $channel, [], $payload);
     }
 
     /**
@@ -62,11 +92,7 @@ class Message
      */
     public static function batch($messages)
     {
-        $headers = [
-            'upsub-message-type' => static::BATCH
-        ];
-
-        return new Message($headers, $messages);
+        return new Message(static::BATCH, "", $headers, $messages);
     }
 
     /**
@@ -75,10 +101,24 @@ class Message
      */
     public function encode()
     {
-        return json_encode([
-            'headers' => $this->headers,
-            'payload' => json_encode($this->payload)
-        ]);
+        $msg = $this->type.' '.$this->channel;
+        $payload = $this->payload;
+
+        foreach ($this->headers as $key => $value) {
+            $msg .= "\n".$key.": ".$value;
+        }
+
+        if (!is_null($payload)) {
+            $msg .= "\n\n";
+        }
+
+        if (!is_string($payload)) {
+            $msg .= json_encode($payload);
+        } else {
+            $msg .= $payload;
+        }
+
+        return $msg;
     }
 
     /**

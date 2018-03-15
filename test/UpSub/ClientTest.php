@@ -53,6 +53,8 @@ class ClientTest extends TestCase
     public function testShouldSendRawMessage()
     {
         $msg = new Message(
+            Message::TEXT,
+            "channel",
             ['header-key' => 'header-value'],
             ['payload-key' => 'payload-value']
         );

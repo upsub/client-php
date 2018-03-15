@@ -12,9 +12,12 @@ class MessageTest extends TestCase
     {
         $headers = ['header-key' => 'header-value'];
         $payload = ['payload-key' => 'payload-value'];
-        $msg = new Message($headers, $payload);
+        $msg = new Message(Message::TEXT, 'channel', $headers, $payload);
 
         $this->assertInstanceOf(Message::class, $msg);
+        $this->assertEquals('text', $msg->type);
+        $this->assertEquals('channel', $msg->channel);
+        $this->assertEquals((object)$headers, $msg->headers);
         $this->assertEquals((object)$headers, $msg->headers);
         $this->assertEquals($payload, $msg->payload);
     }
@@ -25,6 +28,7 @@ class MessageTest extends TestCase
     public function testShouldHaveStaticMessagetypes()
     {
         $this->assertEquals('text', Message::TEXT);
+        $this->assertEquals('json', Message::JSON);
         $this->assertEquals('batch', Message::BATCH);
     }
 
@@ -34,13 +38,25 @@ class MessageTest extends TestCase
     public function testShouldCreateTextMessage()
     {
         $msg = Message::text('some-channel', 'payload');
-        $expectedHeaders = (object)[
-            'upsub-message-type' => 'text',
-            'upsub-channel' => 'some-channel'
-        ];
         $expectedPayload = 'payload';
 
-        $this->assertEquals($expectedHeaders, $msg->headers);
+        $this->assertEquals('text', $msg->type);
+        $this->assertEquals('some-channel', $msg->channel);
+        $this->assertEquals((object)[], $msg->headers);
+        $this->assertEquals($expectedPayload, $msg->payload);
+    }
+
+    /**
+     * Should create a new json message
+     */
+    public function testShouldCreateJSONsMessage()
+    {
+        $msg = Message::json('some-channel', [ 'key' => 'value' ]);
+        $expectedPayload = ['key' => 'value'];
+
+        $this->assertEquals('json', $msg->type);
+        $this->assertEquals('some-channel', $msg->channel);
+        $this->assertEquals((object)[], $msg->headers);
         $this->assertEquals($expectedPayload, $msg->payload);
     }
 
@@ -55,13 +71,10 @@ class MessageTest extends TestCase
         ];
 
         $msg = Message::batch($messages);
-
-        $expectedHeaders = (object)[
-            'upsub-message-type' => 'batch'
-        ];
         $expectedPayload = $messages;
 
-        $this->assertEquals($expectedHeaders, $msg->headers);
+        $this->assertEquals("batch", $msg->type);
+        $this->assertEquals((object)[], $msg->headers);
         $this->assertEquals($expectedPayload, $msg->payload);
     }
 
@@ -73,12 +86,14 @@ class MessageTest extends TestCase
         $headers = ['header-key' => 'header-value'];
         $payload = ['payload-key' => 'payload-value'];
 
-        $msg = new Message($headers, $payload);
+        $msg = new Message(
+            Message::JSON,
+            "channel",
+            $headers,
+            $payload
+        );
 
-        $expectedEncoding = json_encode([
-            'headers' => $headers,
-            'payload' => json_encode($payload)
-        ]);
+        $expectedEncoding = "json channel\nheader-key: header-value\n\n{\"payload-key\":\"payload-value\"}";
 
         $this->assertEquals($expectedEncoding, $msg->encode());
     }
@@ -91,12 +106,14 @@ class MessageTest extends TestCase
         $headers = ['header-key' => 'header-value'];
         $payload = ['payload-key' => 'payload-value'];
 
-        $msg = new Message($headers, $payload);
+        $msg = new Message(
+            Message::TEXT,
+            "channel",
+            $headers,
+            $payload
+        );
 
-        $expectedEncoding = json_encode([
-            'headers' => $headers,
-            'payload' => json_encode($payload)
-        ]);
+        $expectedEncoding = "text channel\nheader-key: header-value\n\n{\"payload-key\":\"payload-value\"}";
 
         $this->assertEquals($expectedEncoding, "$msg");
     }

@@ -53,6 +53,8 @@ class ClientTest extends TestCase
     public function testShouldSendRawMessage()
     {
         $msg = new Message(
+            Message::TEXT,
+            "channel",
             ['header-key' => 'header-value'],
             ['payload-key' => 'payload-value']
         );
@@ -90,6 +92,24 @@ class ClientTest extends TestCase
             $response = $client->send('some-channel', 'payload');
         } catch (Exception $error) {
             $this->assertInstanceOf(Exception::class, $error);
+        }
+    }
+
+    /**
+     * Should throw exception if a channel contains spaces.
+     */
+    public function testShouldThroughIfChannelIncludesSpaces()
+    {
+        $client = new Client('http://not-upsub.com', [
+            'dependencies' => [
+                'curl' => CurlMock::class
+            ]
+        ]);
+
+        try {
+            $response = $client->send('some channel', 'payload');
+        } catch (\UnexpectedValueException $error) {
+            $this->assertInstanceOf(\UnexpectedValueException::class, $error);
         }
     }
 
